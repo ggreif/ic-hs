@@ -21,7 +21,6 @@ import qualified Data.Map.Lazy as M
 import qualified Data.Set as S
 import qualified Data.Vector as Vec
 import qualified Data.ByteString.Lazy.UTF8 as BLU
-import Data.Text.Encoding.Base64(encodeBase64)
 import Data.ByteString.Builder
 import Numeric.Natural
 import Data.List
@@ -159,9 +158,8 @@ canister_http_calls sub =
     -- "Currently, the GET, HEAD, and POST methods are supported for HTTP requests."
 
     simpleTestCase "GET call" ecid $ \cid -> do
-      let s = "Hello world!"
-      let enc = T.unpack $ encodeBase64 $ T.pack s
-      resp <- ic_http_get_request (ic00viaWithCyclesRefund 0 cid) sub ("base64/" ++ enc) (Just 666) Nothing cid
+      let s = "hello_world"
+      resp <- ic_http_get_request (ic00viaWithCyclesRefund 0 cid) sub ("ascii/" ++ s) (Just 666) Nothing cid
       (resp .! #status) @?= 200
       (resp .! #body) @?= BLU.fromString s
       check_http_response resp
@@ -190,9 +188,9 @@ canister_http_calls sub =
     -- "For security reasons, only HTTPS connections are allowed (URLs must start with https://)."
 
     , testCase "url must start with https://" $ do
-      let enc = T.unpack $ encodeBase64 $ T.pack "Hello world!"
+      let s = "hello_world"
       cid <- install ecid noop
-      ic_http_get_request' (ic00viaWithCyclesRefund 0 cid) sub "http://" ("base64/" ++ enc) Nothing Nothing cid >>= isReject [1]
+      ic_http_get_request' (ic00viaWithCyclesRefund 0 cid) sub "http://" ("ascii/" ++ s) Nothing Nothing cid >>= isReject [1]
 
     -- "The size of an HTTP request from the canister is the total number of bytes representing the names and values of HTTP headers and the HTTP body. The maximal size for the request from the canister is 2MB (2,000,000B)."
 
@@ -215,8 +213,7 @@ canister_http_calls sub =
     -- "The size of an HTTP response from the remote server is the total number of bytes representing the names and values of HTTP headers and the HTTP body. Each request can specify a maximal size for the response from the remote HTTP server."
 
     , simpleTestCase "small maximum possible response size" ecid $ \cid -> do
-      let s = "Hello world!"
-      let enc = T.unpack $ encodeBase64 $ T.pack s
+      let s = "hello_world"
       {- Response headers (size: 136)
           Connection: keep-alive
           Content-Type: text/html; charset=utf-8
@@ -225,14 +222,13 @@ canister_http_calls sub =
           Access-Control-Allow-Credentials: true
       -}
       let header_size = 136
-      resp <- ic_http_get_request (ic00viaWithCyclesRefund 0 cid) sub ("base64/" ++ enc) (Just $ fromIntegral $ length s + header_size) Nothing cid
+      resp <- ic_http_get_request (ic00viaWithCyclesRefund 0 cid) sub ("ascii/" ++ s) (Just $ fromIntegral $ length s + header_size) Nothing cid
       (resp .! #status) @?= 200
       (resp .! #body) @?= BLU.fromString s
       check_http_response resp
 
     , simpleTestCase "small maximum possible response size exceeded" ecid $ \cid -> do
-      let s = "Hello world!"
-      let enc = T.unpack $ encodeBase64 $ T.pack s
+      let s = "hello_world"
       {- Response headers (size: 136)
           Connection: keep-alive
           Content-Type: text/html; charset=utf-8
@@ -241,7 +237,7 @@ canister_http_calls sub =
           Access-Control-Allow-Credentials: true
       -}
       let header_size = 136
-      ic_http_get_request' (ic00viaWithCyclesRefund 0 cid) sub "https://" ("base64/" ++ enc) (Just $ fromIntegral $ length s + header_size - 1) Nothing cid >>= isReject [1]
+      ic_http_get_request' (ic00viaWithCyclesRefund 0 cid) sub "https://" ("ascii/" ++ s) (Just $ fromIntegral $ length s + header_size - 1) Nothing cid >>= isReject [1]
 
     , simpleTestCase "small maximum possible response size (only headers)" ecid $ \cid -> do
       {- Response headers (size: 136)
@@ -314,16 +310,15 @@ canister_http_calls sub =
     -- "max_response_bytes - If provided, the value must not exceed 2MB (2,000,000B)."
 
     , simpleTestCase "maximum possible value of max_response_bytes" ecid $ \cid -> do
-      let s = "Hello world!"
-      let enc = T.unpack $ encodeBase64 $ T.pack s
-      resp <- ic_http_get_request (ic00viaWithCyclesRefund 0 cid) sub ("base64/" ++ enc) (Just max_response_bytes_limit) Nothing cid
+      let s = "hello_world"
+      resp <- ic_http_get_request (ic00viaWithCyclesRefund 0 cid) sub ("ascii/" ++ s) (Just max_response_bytes_limit) Nothing cid
       (resp .! #status) @?= 200
       (resp .! #body) @?= BLU.fromString s
       check_http_response resp
 
     , simpleTestCase "maximum possible value of max_response_bytes exceeded" ecid $ \cid -> do
-      let enc = T.unpack $ encodeBase64 $ T.pack "Hello world!"
-      ic_http_get_request' (\fee -> ic00viaWithCyclesRefund fee cid fee) sub "https://" ("base64/" ++ enc) (Just $ max_response_bytes_limit + 1) Nothing cid >>= isReject [4]
+      let s = "hello_world"
+      ic_http_get_request' (\fee -> ic00viaWithCyclesRefund fee cid fee) sub "https://" ("ascii/" ++ s) (Just $ max_response_bytes_limit + 1) Nothing cid >>= isReject [4]
 
     -- "transform - an optional record that includes a function that transforms raw responses to sanitized responses, and a byte-encoded context that is provided to the function upon invocation, along with the response to be sanitized."
 
@@ -337,24 +332,24 @@ canister_http_calls sub =
       check_http_response resp
 
     , testCase "reflect transform context" $ do
-      let enc = T.unpack $ encodeBase64 $ T.pack "Hello world!"
+      let s = "hello_world"
       cid <- install ecid (onTransform (callback (replyData (getHttpReplyWithBody (getHttpTransformContext argData)))))
-      resp <- ic_http_get_request (ic00viaWithCyclesRefund 0 cid) sub ("base64/" ++ enc) Nothing (Just ("transform", "asdf")) cid
+      resp <- ic_http_get_request (ic00viaWithCyclesRefund 0 cid) sub ("ascii/" ++ s) Nothing (Just ("transform", "asdf")) cid
       (resp .! #status) @?= 200
       (resp .! #body) @?= "asdf"
 
     -- "If provided, the calling canister itself must export this (transform) function."
 
     , testCase "non-existent transform function" $ do
-      let enc = T.unpack $ encodeBase64 $ T.pack "Hello world!"
+      let s = "hello_world"
       cid <- install ecid noop
-      ic_http_get_request' (ic00viaWithCyclesRefund 0 cid) sub "https://" ("base64/" ++ enc) Nothing (Just ("nonExistent", "")) cid >>= isReject [3]
+      ic_http_get_request' (ic00viaWithCyclesRefund 0 cid) sub "https://" ("ascii/" ++ s) Nothing (Just ("nonExistent", "")) cid >>= isReject [3]
 
     , testCase "reference to a transform function exposed by another canister" $ do
-      let enc = T.unpack $ encodeBase64 $ T.pack "Hello world!"
+      let s = "hello_world"
       cid <- install ecid noop
       cid2 <- install ecid (onTransform (callback (replyData (bytes (Candid.encode dummyResponse)))))
-      ic_http_get_request' (\fee -> ic00viaWithCyclesRefund fee cid fee) sub "https://" ("base64/" ++ enc) Nothing (Just ("transform", "")) cid2 >>= isReject [4]
+      ic_http_get_request' (\fee -> ic00viaWithCyclesRefund fee cid fee) sub "https://" ("ascii/" ++ s) Nothing (Just ("transform", "")) cid2 >>= isReject [4]
 
     -- "The maximal number of bytes representing the response produced by the transform function is 2MB (2,000,000B)."
 
@@ -393,9 +388,9 @@ canister_http_calls sub =
     -- "When the transform function is invoked by the system due to a canister HTTP request, the caller's identity is the principal of the management canister."
 
     , testCase "check caller of transform" $ do
-      let enc = T.unpack $ encodeBase64 $ T.pack "Hello world!"
+      let s = "hello_world"
       cid <- install ecid (onTransform (callback (replyData (getHttpReplyWithBody (parsePrincipal caller)))))
-      resp <- ic_http_get_request (ic00viaWithCyclesRefund 0 cid) sub ("base64/" ++ enc) Nothing (Just ("transform", "caller")) cid
+      resp <- ic_http_get_request (ic00viaWithCyclesRefund 0 cid) sub ("ascii/" ++ s) Nothing (Just ("transform", "caller")) cid
       (resp .! #status) @?= 200
       (resp .! #body) @?= "aaaaa-aa"
 
@@ -543,22 +538,22 @@ icTests my_sub other_sub =
   let initial_cycles = case my_type of System -> 0
                                        _ -> (2^(60::Int)) in
   withAgentConfig $ testGroup "Interface Spec acceptance tests" $
-  let test_subnet_msg subnet_id subnet_id' cid = do
+  let test_subnet_msg sub subnet_id subnet_id' cid = do
         cid2 <- ic_create (ic00viaWithCyclesSubnet subnet_id cid 20_000_000_000_000) ecid empty
         ic_install (ic00viaWithCyclesSubnet subnet_id cid 0) (enum #install) cid2 trivialWasmModule ""
         cid3 <- ic_provisional_create (ic00viaWithCyclesSubnet subnet_id cid 20_000_000_000_000) ecid Nothing Nothing empty
         ic_install (ic00viaWithCyclesSubnet subnet_id cid 0) (enum #install) cid3 trivialWasmModule ""
         ic_install (ic00viaWithCyclesSubnet subnet_id cid 0) (enum #reinstall) cid3 trivialWasmModule ""
         ic_install' (ic00viaWithCyclesSubnet' subnet_id' cid 0) (enum #reinstall) cid3 trivialWasmModule "" >>= isReject [3]
-        _ <- ic_http_get_request (ic00viaWithCyclesSubnet subnet_id cid) my_sub ("equal_bytes/8") Nothing Nothing cid
+        _ <- ic_http_get_request (ic00viaWithCyclesSubnet subnet_id cid) sub ("equal_bytes/8") Nothing Nothing cid
         _ <- ic_raw_rand (ic00viaWithCyclesSubnet subnet_id cid 0) ecid
         return () in
-  let test_subnet_msg' subnet_id cid = do
+  let test_subnet_msg' sub subnet_id cid = do
         ic_create' (ic00viaWithCyclesSubnet' subnet_id cid 20_000_000_000_000) ecid empty >>= isReject [3]
         ic_provisional_create' (ic00viaWithCyclesSubnet' subnet_id cid 20_000_000_000_000) ecid Nothing Nothing empty >>= isReject [3]
         cid2 <- ic_create (ic00viaWithCycles cid 20_000_000_000_000) ecid empty
         ic_install' (ic00viaWithCyclesSubnet' subnet_id cid 0) (enum #install) cid2 trivialWasmModule "" >>= isReject [3]
-        ic_http_get_request' (ic00viaWithCyclesSubnet' subnet_id cid) my_sub "https://" ("equal_bytes/8") Nothing Nothing cid >>= isReject [3]
+        ic_http_get_request' (ic00viaWithCyclesSubnet' subnet_id cid) sub "https://" ("equal_bytes/8") Nothing Nothing cid >>= isReject [3]
         ic_raw_rand' (ic00viaWithCyclesSubnet' subnet_id cid 0) ecid >>= isReject [3] in
   let install_with_cycles ecid cycles prog = do
         cid <- ic_provisional_create ic00 ecid Nothing (Just cycles) empty
@@ -626,13 +621,13 @@ icTests my_sub other_sub =
 
     , testCase "as canister to own subnet" $ do
         cid <- install ecid noop
-        if my_is_root then test_subnet_msg my_subnet_id other_subnet_id cid
-        else test_subnet_msg' my_subnet_id cid
+        if my_is_root then test_subnet_msg my_sub my_subnet_id other_subnet_id cid
+        else test_subnet_msg' my_sub my_subnet_id cid
 
     , testCase "as canister to other subnet" $ do
         cid <- install ecid noop
-        if my_is_root then test_subnet_msg other_subnet_id my_subnet_id cid
-        else test_subnet_msg' other_subnet_id cid
+        if my_is_root then test_subnet_msg other_sub other_subnet_id my_subnet_id cid
+        else test_subnet_msg' other_sub other_subnet_id cid
     ]
 
   , testGroup "provisional_create_canister_with_cycles"
@@ -1315,7 +1310,7 @@ icTests my_sub other_sub =
             cid <- install ecid (onInspectMessage (callback (prog >>> acceptMessage)))
             call'' cid reply
           )
-        , "H" =: boolTest (\prog -> do
+        , "T" =: boolTest (\prog -> do
             cid <- install ecid (onHeartbeat (callback (prog >>> setGlobal "Did not trap")))
             call_ cid reply -- This assumes that after one update call returned, a heartbeat
                             -- should have happened. Also see heartbeat tests below.
@@ -1342,7 +1337,7 @@ icTests my_sub other_sub =
         ]
         where s = S.fromList (T.words trapping)
 
-      star = "I G U Q Ry Rt C F H"
+      star = "I G U Q Ry Rt C F T"
       never = ""
 
     in concat
@@ -1363,34 +1358,34 @@ icTests my_sub other_sub =
     , t "canister_self"                star          $ ignore self
     , t "canister_cycle_balance"       star          $ ignore getBalance
     , t "canister_cycle_balance128"    star          $ ignore getBalance128
-    , t "call_new_call_perform"        "U Rt Ry H"   $
+    , t "call_new_call_perform"        "U Rt Ry T"   $
         callNew "foo" "bar" "baz" "quux" >>>
         callDataAppend "foo" >>>
         callCyclesAdd (int64 0) >>>
         callPerform
-    , t "call_set_cleanup"             never           $ callOnCleanup (callback noop)
-    , t "call_data_append"             never           $ callDataAppend "foo"
-    , t "call_cycles_add"              never           $ callCyclesAdd (int64 0)
-    , t "call_cycles_add128"           never           $ callCyclesAdd128 (int64 0) (int64 0)
-    , t "call_perform"                 never             callPerform
-    , t "stable_size"                  star            $ ignore stableSize
-    , t "stable_grow"                  star            $ ignore $ stableGrow (int 1)
-    , t "stable_write"                 star            $ stableWrite (int 0) ""
-    , t "stable_read"                  star            $ ignore $ stableRead (int 0) (int 0)
-    , t "stable64_size"                star            $ ignore stable64Size
-    , t "stable64_grow"                star            $ ignore $ stable64Grow (int64 1)
-    , t "stable64_write"               star            $ stable64Write (int64 0) ""
-    , t "stable64_read"                star            $ ignore $ stable64Read (int64 0) (int64 0)
-    , t "certified_data_set"           "I G U Ry Rt H" $ setCertifiedData "foo"
-    , t "data_certificate_present"     star            $ ignore getCertificatePresent
-    , t "msg_method_name"              "F"             $ ignore methodName
-    , t "accept_message"               never             acceptMessage -- due to double accept
-    , t "time"                         star            $ ignore getTime
-    , t "performance_counter"          star            $ ignore $ performanceCounter (int 0)
-    , t "canister_version"             star            $ ignore $ canisterVersion
-    , t "global_timer_set"             "I U Ry Rt C H" $ ignore $ apiGlobalTimerSet (int64 0)
-    , t "debug_print"                  star            $ debugPrint "hello"
-    , t "trap"                         never           $ trap "this better traps"
+    , t "call_set_cleanup"             never             $ callOnCleanup (callback noop)
+    , t "call_data_append"             never             $ callDataAppend "foo"
+    , t "call_cycles_add"              never             $ callCyclesAdd (int64 0)
+    , t "call_cycles_add128"           never             $ callCyclesAdd128 (int64 0) (int64 0)
+    , t "call_perform"                 never               callPerform
+    , t "stable_size"                  star              $ ignore stableSize
+    , t "stable_grow"                  star              $ ignore $ stableGrow (int 1)
+    , t "stable_write"                 star              $ stableWrite (int 0) ""
+    , t "stable_read"                  star              $ ignore $ stableRead (int 0) (int 0)
+    , t "stable64_size"                star              $ ignore stable64Size
+    , t "stable64_grow"                star              $ ignore $ stable64Grow (int64 1)
+    , t "stable64_write"               star              $ stable64Write (int64 0) ""
+    , t "stable64_read"                star              $ ignore $ stable64Read (int64 0) (int64 0)
+    , t "certified_data_set"           "I G U Ry Rt T"   $ setCertifiedData "foo"
+    , t "data_certificate_present"     star              $ ignore getCertificatePresent
+    , t "msg_method_name"              "F"               $ ignore methodName
+    , t "accept_message"               never               acceptMessage -- due to double accept
+    , t "time"                         star              $ ignore getTime
+    , t "performance_counter"          star              $ ignore $ performanceCounter (int 0)
+    , t "canister_version"             star              $ ignore $ canisterVersion
+    , t "global_timer_set"             "I G U Ry Rt C T" $ ignore $ apiGlobalTimerSet (int64 0)
+    , t "debug_print"                  star              $ debugPrint "hello"
+    , t "trap"                         never             $ trap "this better traps"
     ]
 
   , simpleTestCase "self" ecid $ \cid ->
@@ -1771,44 +1766,55 @@ icTests my_sub other_sub =
     ]
 
   , testGroup "canister global timer" $
-    let on_timer_prog n = onGlobalTimer $ callback (setGlobal $ i64tob $ int64 $ fromIntegral n) in
-    let set_timer_prog time = setGlobal $ i64tob $ apiGlobalTimerSet $ int64 time in
+    let on_timer_prog n = onGlobalTimer $ callback ((ignore $ stableGrow $ int 1) >>> (stableWrite (int 0) $ i64tob $ int64 $ fromIntegral n)) in
+    let set_timer_prog time = ((ignore $ stableGrow $ int 1) >>> (stableWrite (int 0) $ i64tob $ apiGlobalTimerSet $ int64 time)) in
     let install_canister_with_global_timer n = install ecid $ on_timer_prog n in
-    let reset_global cid = call cid ((setGlobal $ i64tob $ int64 42) >>> replyData "") in
-    let get_global cid = call cid (replyData $ getGlobal) in
+    let reset_stable cid = call cid ((ignore $ stableGrow $ int 1) >>> (stableWrite (int 0) $ i64tob $ int64 42) >>> replyData "") in
+    let get_stable cid = call cid (replyData $ stableRead (int 0) (int 8)) in
     let get_far_past_time = return 1 in
     let get_current_time = floor . (* 1e9) <$> getPOSIXTime in
     let get_far_future_time = floor . (* 1e9) <$> (+) 100000 <$> getPOSIXTime in
     let get_far_far_future_time = floor . (* 1e9) <$> (+) 1000000 <$> getPOSIXTime in
     let set_timer cid time = call cid (replyData $ i64tob $ apiGlobalTimerSet $ int64 time) in
     let blob = toLazyByteString . word64LE . fromIntegral in
-    let wait_for_timer cid n = waitFor $ (blob n ==) <$> get_global cid in
+    let wait_for_timer cid n = waitFor $ (blob n ==) <$> get_stable cid in
     [ testCase "in update" $ do
-      cid <- install_canister_with_global_timer (1::Int)
-      _ <- reset_global cid
+      cid <- install_canister_with_global_timer (2::Int)
+      _ <- reset_stable cid
       far_future_time <- get_far_future_time
       timer1 <- set_timer cid far_future_time
       timer2 <- set_timer cid far_future_time
-      ctr <- get_global cid
+      ctr <- get_stable cid
       timer1 @?= blob 0
       timer2 @?= blob far_future_time
       ctr @?= blob 42
     , testCase "in init" $ do
       far_future_time <- get_far_future_time
-      cid <- install ecid $ on_timer_prog (1::Int) >>> set_timer_prog far_future_time
-      timer1 <- get_global cid
+      cid <- install ecid $ on_timer_prog (2::Int) >>> set_timer_prog far_future_time
+      timer1 <- get_stable cid
       timer2 <- set_timer cid far_future_time
       timer1 @?= blob 0
       timer2 @?= blob far_future_time
+    , testCase "in pre-upgrade" $ do
+      far_past_time <- get_far_past_time
+      far_future_time <- get_far_future_time
+      cid <- install ecid $ (on_timer_prog (2::Int) >>> onPreUpgrade (callback $ ((ignore $ stableGrow $ int 1) >>> (stableWrite (int 0) $ i64tob $ apiGlobalTimerSet $ int64 far_past_time))))
+      _ <- reset_stable cid
+      universal_wasm <- getTestWasm "universal-canister"
+      _ <- ic_install ic00 (enum #upgrade) cid universal_wasm (run noop)
+      timer1 <- get_stable cid
+      timer2 <- set_timer cid far_future_time
+      timer1 @?= blob 0
+      timer2 @?= blob 0
     , testCase "in post-upgrade" $ do
-      cid <- install_canister_with_global_timer (1::Int)
-      _ <- reset_global cid
+      cid <- install_canister_with_global_timer (2::Int)
+      _ <- reset_stable cid
       far_future_time <- get_far_future_time
       timer1 <- set_timer cid far_future_time
       far_far_future_time <- get_far_far_future_time
       universal_wasm <- getTestWasm "universal-canister"
       _ <- ic_install ic00 (enum #upgrade) cid universal_wasm (run $ set_timer_prog far_far_future_time)
-      timer2 <- get_global cid
+      timer2 <- get_stable cid
       timer3 <- set_timer cid far_future_time
       timer1 @?= blob 0
       timer2 @?= blob 0
@@ -1816,92 +1822,92 @@ icTests my_sub other_sub =
     , testCase "in timer callback" $ do
       past_time <- get_far_past_time
       far_future_time <- get_far_future_time
-      cid <- install ecid $ onGlobalTimer $ callback $ set_timer_prog far_future_time -- the timer callback sets timer to far_future_time and assigns the previous value of timer to global variable
-      _ <- reset_global cid -- sets global variable to 42
+      cid <- install ecid $ onGlobalTimer $ callback $ set_timer_prog far_future_time -- the timer callback sets timer to far_future_time and stores the previous value of timer to stable memory
+      _ <- reset_stable cid -- stores 42 to stable memory
       timer1 <- set_timer cid past_time -- sets timer to 1 and returns previous value of timer (0)
-      wait_for_timer cid 0 -- wait until global variable becomes 0 (previous value of timer assigned to global variable by the timer callback)
+      wait_for_timer cid 0 -- wait until stable memory stores 0 (previous value of timer assigned to stable memory by the timer callback)
       timer2 <- set_timer cid far_future_time -- sets timer to far_future_time and returns previous value of timer (far_future_time set by the timer callback)
       timer1 @?= blob 0
       timer2 @?= blob far_future_time
     , testCase "deactivate timer" $ do
-      cid <- install_canister_with_global_timer (1::Int)
-      _ <- reset_global cid
+      cid <- install_canister_with_global_timer (2::Int)
+      _ <- reset_stable cid
       far_future_time <- get_far_future_time
       timer1 <- set_timer cid far_future_time
       timer2 <- set_timer cid 0
       timer3 <- set_timer cid far_future_time
-      ctr <- get_global cid
+      ctr <- get_stable cid
       timer1 @?= blob 0
       timer2 @?= blob far_future_time
       timer3 @?= blob 0
       ctr @?= blob 42
     , testCase "set timer far in the past" $ do
-      cid <- install_canister_with_global_timer (1::Int)
-      _ <- reset_global cid
+      cid <- install_canister_with_global_timer (2::Int)
+      _ <- reset_stable cid
       past_time <- get_far_past_time
       timer1 <- set_timer cid past_time
-      wait_for_timer cid 1
+      wait_for_timer cid 2
       future_time <- get_far_future_time
       timer2 <- set_timer cid future_time
       timer1 @?= blob 0
       timer2 @?= blob 0
     , testCase "set timer at current time" $ do
-      cid <- install_canister_with_global_timer (1::Int)
-      _ <- reset_global cid
+      cid <- install_canister_with_global_timer (2::Int)
+      _ <- reset_stable cid
       current_time <- get_current_time
       timer1 <- set_timer cid current_time
-      wait_for_timer cid 1
+      wait_for_timer cid 2
       future_time <- get_far_future_time
       timer2 <- set_timer cid future_time
       timer1 @?= blob 0
       timer2 @?= blob 0
     , testCase "stop and start canister" $ do
-      cid <- install_canister_with_global_timer (1::Int)
-      _ <- reset_global cid
+      cid <- install_canister_with_global_timer (2::Int)
+      _ <- reset_stable cid
       far_future_time <- get_far_future_time
       timer1 <- set_timer cid far_future_time
       timer2 <- set_timer cid far_future_time
       _ <- ic_stop_canister ic00 cid
       _ <- ic_start_canister ic00 cid
       timer3 <- set_timer cid far_future_time
-      ctr <- get_global cid
+      ctr <- get_stable cid
       timer1 @?= blob 0
       timer2 @?= blob far_future_time
       timer3 @?= blob far_future_time
       ctr @?= blob 42
     , testCase "uninstall and install canister" $ do
-      cid <- install_canister_with_global_timer (1::Int)
-      _ <- reset_global cid
+      cid <- install_canister_with_global_timer (2::Int)
+      _ <- reset_stable cid
       far_future_time <- get_far_future_time
       timer1 <- set_timer cid far_future_time
       timer2 <- set_timer cid far_future_time
       universal_wasm <- getTestWasm "universal-canister"
       _ <- ic_uninstall ic00 cid
-      _ <- ic_install ic00 (enum #install) cid universal_wasm (run $ on_timer_prog (1::Int))
+      _ <- ic_install ic00 (enum #install) cid universal_wasm (run $ on_timer_prog (2::Int))
       timer3 <- set_timer cid far_future_time
       timer1 @?= blob 0
       timer2 @?= blob far_future_time
       timer3 @?= blob 0
     , testCase "upgrade canister" $ do
-      cid <- install_canister_with_global_timer (1::Int)
-      _ <- reset_global cid
+      cid <- install_canister_with_global_timer (2::Int)
+      _ <- reset_stable cid
       far_future_time <- get_far_future_time
       timer1 <- set_timer cid far_future_time
       timer2 <- set_timer cid far_future_time
       universal_wasm <- getTestWasm "universal-canister"
-      _ <- ic_install ic00 (enum #upgrade) cid universal_wasm (run $ on_timer_prog (1::Int))
+      _ <- ic_install ic00 (enum #upgrade) cid universal_wasm (run $ on_timer_prog (2::Int))
       timer3 <- set_timer cid far_future_time
       timer1 @?= blob 0
       timer2 @?= blob far_future_time
       timer3 @?= blob 0
     , testCase "reinstall canister" $ do
-      cid <- install_canister_with_global_timer (1::Int)
-      _ <- reset_global cid
+      cid <- install_canister_with_global_timer (2::Int)
+      _ <- reset_stable cid
       far_future_time <- get_far_future_time
       timer1 <- set_timer cid far_future_time
       timer2 <- set_timer cid far_future_time
       universal_wasm <- getTestWasm "universal-canister"
-      _ <- ic_install ic00 (enum #reinstall) cid universal_wasm (run $ on_timer_prog (1::Int))
+      _ <- ic_install ic00 (enum #reinstall) cid universal_wasm (run $ on_timer_prog (2::Int))
       timer3 <- set_timer cid far_future_time
       timer1 @?= blob 0
       timer2 @?= blob far_future_time
