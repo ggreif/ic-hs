@@ -116,17 +116,11 @@ exportName (WS.Export name _) = T.unpack name
 exportedFunctions :: Module -> [FuncName]
 exportedFunctions wasm_mod = map exportName $ WS.exports wasm_mod
 
-invokeExport :: Store -> ModuleInstance -> FuncName -> [W.Value] -> IO [W.Value]
-invokeExport st mod method args = do
-  v <- W.invokeExport st mod (T.pack method) args
-  case v of Just w -> return w
-            Nothing -> error "invoke export failed"
+invokeExport :: Store -> ModuleInstance -> FuncName -> [W.Value] -> IO (Maybe [W.Value])
+invokeExport st mod method args = W.invokeExport st mod (T.pack method) args
 
-invokeTable :: Store -> ModuleInstance -> Address -> [W.Value] -> IO [W.Value]
-invokeTable st _mod idx args = do
-  v <- W.invoke st idx args
-  case v of Just w -> return w
-            Nothing -> error "invoke failed"
+invokeTable :: Store -> ModuleInstance -> Address -> [W.Value] -> IO (Maybe [W.Value])
+invokeTable st _mod idx args = W.invoke st idx args
 
 getBytes :: Store -> ModuleInstance -> Address -> Int -> IO BS.ByteString
 getBytes _st _mod _ptr _len = do

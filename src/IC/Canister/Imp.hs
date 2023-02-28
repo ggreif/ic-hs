@@ -774,6 +774,7 @@ systemAPI esref =
 
 data ImpState s = ImpState
   { isESRef :: ESRef s
+  , isStore :: Store
   , isInstance :: ModuleInstance
   , isStableMem :: Memory s
   , isModule :: Module
@@ -802,7 +803,7 @@ canisterActions es = CanisterActions
 type CanisterEntryPoint r = forall s. (ImpState s -> IO r)
 
 rawInitialize :: EntityId -> Env -> Blob -> ImpState s -> IO (TrapOr CanisterActions)
-rawInitialize caller env dat (ImpState esref inst sm wasm_mod) = do
+rawInitialize caller env dat (ImpState esref store inst sm wasm_mod) = do
   result <- do
     let es = (initialExecutionState inst sm env cantRespond EXC_I)
               { eparams = Params
@@ -813,16 +814,15 @@ rawInitialize caller env dat (ImpState esref inst sm wasm_mod) = do
                   , cycles_refunded = Nothing
                   }
               }
-    st <- getsES esref store
 
     --  invoke canister_init
     if "canister_init" `elem` exportedFunctions wasm_mod
-    then withES esref es $ void $ invokeExport st inst "canister_init" []
-    else return ((), es)
+    then withES esref es $ invokeExport st inst "canister_init" []
+    else return (Just [], es)
 
   case result of
-    Left  err -> return $ Trap err
-    Right (_, es') -> return $ Return $ canisterActions es'
+    (Nothing, _) -> return $ Trap ""
+    (_, es') -> return $ Return $ canisterActions es'
 
 rawHeartbeat :: Env -> ImpState s -> IO (TrapOr ([MethodCall], CanisterActions))
 rawHeartbeat env (ImpState esref inst sm wasm_mod) = do

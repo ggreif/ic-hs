@@ -12,12 +12,12 @@ import qualified IC.Canister.StableMemory as Stable
 runHostM :: ExceptT String (ST RealWorld) a -> IO (Either String a)
 runHostM = stToIO . runExceptT
 
-mkMem :: Int -> ExceptT String (ST s) (Stable.Memory s)
+mkMem :: Int -> IO (Stable.Memory)
 mkMem numPages = do
   mem <- Stable.new
   r <- Stable.grow mem (fromIntegral numPages)
   when (r < 0) $
-    throwError "grow failed"
+    error "grow failed"
   return mem
 
 stableMemoryTests :: TestTree
