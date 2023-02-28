@@ -70,7 +70,6 @@
 , wai-extra
 , warp
 , wide-word
-, winter
 , word8
 , x509
 , x509-store
@@ -150,7 +149,6 @@ mkDerivation {
     wai-extra
     warp
     wide-word
-    winter
     word8
     x509
     x509-store

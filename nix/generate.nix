@@ -53,12 +53,6 @@ let
       extraCabal2nixOptions = "--no-check";
     };
 
-    winter = haskellSrc2nixWithDoc {
-      name = "winter";
-      src = pkgs.sources.winter;
-      src_subst = "pkgs.sources.winter";
-      extraCabal2nixOptions = "--no-check";
-    };
     leb128-cereal = haskellSrc2nixWithDoc {
       name = "leb128-cereal";
       src = pkgs.sources.leb128-cereal;

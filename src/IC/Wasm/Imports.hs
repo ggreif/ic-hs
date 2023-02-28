@@ -9,8 +9,9 @@ import Data.Int
 import Data.Word
 import IC.Wasm.Winter
 import Text.Printf
-import Control.Monad.Except
+import qualified Data.Text.Lazy as T
 
+type StackType = [ValueType]
 
 class WasmArg a where
     valueType :: ValueType
@@ -35,17 +36,17 @@ argError n xs = Left $
     printf "expected %d arguments, got %d arguments" n (length xs)
 
 instance WasmArg Int32 where
-  valueType = I32Type
-  fromValue (I32 i) = Right i
+  valueType = I32
+  fromValue (VI32 i) = Right (fromIntegral i)
   fromValue v = Left $ "expected i32, got " ++ show v
-  toValue = I32
+  toValue = VI32 . fromIntegral
 instance WasmArgs Int32 where
 
 instance WasmArg Word64 where
-  valueType = I64Type
-  fromValue (I64 i) = Right (fromIntegral i)
+  valueType = I64
+  fromValue (VI64 i) = Right (fromIntegral i)
   fromValue v = Left $ "expected i64, got " ++ show v
-  toValue = I64 . fromIntegral
+  toValue = VI64 . fromIntegral
 instance WasmArgs Word64 where
 
 instance WasmArgs () where
@@ -402,15 +403,16 @@ instance
 
 
 toImport ::
-    forall a b s.
+    forall a b.
     (WasmArgs a, WasmArgs b) =>
-    String -> String -> (a -> HostM s b) -> Import s
-toImport mod_name fun_name  f = (mod_name, fun_name, stackType @a, stackType @b, f')
+    String -> String -> (a -> IO b) -> Import
+toImport mod_name fun_name  f =
+  (T.pack (mod_name ++ "." ++ fun_name), HostFunction (FuncType (stackType @a) (stackType @b)) f')
   where
-    f' :: [Value] -> HostFunc s
+    f' :: [Value] -> IO [Value]
     f' xs = do
-      a <- withExceptT ((mod_name ++ "." ++ fun_name ++ ": ") ++) $
-        ExceptT $ return (fromValues xs)
+      a <- case fromValues xs of Right x -> return x
+                                 Left e -> error $ show e
       b <- f a
       return $ toValues b
 

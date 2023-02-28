@@ -133,6 +133,7 @@ library
   build-depends: directory
   build-depends: ed25519
   build-depends: either
+  build-depends: errors
   build-depends: filepath
   build-depends: hashable
   build-depends: haskoin-core
@@ -177,8 +178,8 @@ library
   build-depends: wai-cors
   build-depends: wai-extra
   build-depends: warp
+  build-depends: wasm
   build-depends: wide-word
-  build-depends: winter
   build-depends: word8
   build-depends: x509
   build-depends: x509-store

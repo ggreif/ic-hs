@@ -10,37 +10,26 @@ module IC.Wasm.Winter
   ( Module
   , parseModule
   , exportedFunctions
-  , Import
-  , Imports
-  , HostM
-  , HostFunc
+  , ModuleInstance
   , W.Value(..)
-  , W.StackType
-  , W.ValueType(..)
-  , W.Address
-  , W.Size
+  , WS.FuncType(..)
+  , W.HostItem(..)
+  , W.Store
+  , WS.ValueType(..)
+  , Import
   , getBytes
   , setBytes
   , initialize
-  , Instance
   , invokeExport
   , invokeTable
   )
 where
 
-import qualified Data.ByteString.Lazy as BS
-import Control.Monad.Except
-import qualified Data.Map as M
-import qualified Data.Vector as V
-import qualified Data.IntMap as IM
+import qualified Data.ByteString as BS
 import qualified Data.Text.Lazy as T
-import Control.Monad.ST
-import Data.Binary.Get (runGetOrFail)
-import Data.Default.Class (Default (..))
-import Data.Int
-import Data.Foldable
 import Data.MemoUgly
 
+{-
 import qualified Wasm.Binary.Decode as W
 import qualified Wasm.Exec.Eval as W
 import qualified Wasm.Runtime.Func as W
@@ -51,7 +40,14 @@ import qualified Wasm.Syntax.Types as W
 import qualified Wasm.Syntax.Values as W
 import qualified Wasm.Syntax.Memory as W
 import qualified Wasm.Util.Source as W
+-}
 
+import qualified Language.Wasm.Binary as W
+import qualified Language.Wasm.Interpreter as W
+import qualified Language.Wasm.Structure as WS
+import qualified Language.Wasm.Validate as W
+
+{-
 type Instance s = (IM.IntMap (W.ModuleInst W.Phrase (ST s)), Int)
 
 type HostM s = ExceptT String (ST s)
@@ -59,24 +55,32 @@ type HostM s = ExceptT String (ST s)
 type HostFunc s = HostM s [W.Value]
 
 type ModName = String
-type FuncName = String
 type Import s = (ModName, FuncName, W.StackType, W.StackType, [W.Value] -> HostFunc s)
 type Imports s = [Import s]
+-}
 
-type Module = W.Module W.Phrase
-
+type Address = Int
+type Module = WS.Module
+type ModuleInstance = W.ModuleInstance
+type Imports = W.Imports
+type Store = W.Store
+type FuncName = String
+type Import = (T.Text, W.HostItem)
 -- This function is memoized using Data.MemoUgly. This optimizes for workloads
 -- where the same module is parsed many times (ic-ref-test). It is wasteful when
 -- a module is parsed, eventually dropped (i.e. canister deleted), and never installed
 -- again.
 parseModule :: BS.ByteString -> Either String Module
-parseModule = memo $ \bytes -> case runGetOrFail W.getModule bytes of
-  Left  (_,_,err) -> Left err
-  Right (_,_,wasm_mod) -> Right wasm_mod
+parseModule = memo W.decodeModule
 
-
-initialize :: forall s. Module -> Imports s -> HostM s (Instance s)
-initialize mod imps = withExceptT show $ do
+initialize :: Module -> Imports -> IO (Store, ModuleInstance)
+initialize mod imps = do
+  valid_mod <- case W.validate mod of Right w -> return w
+                                      Left e -> error $ show e
+  (res, st) <- W.instantiate W.emptyStore imps valid_mod
+  case res of Right w -> return (st, w)
+              Left e -> error $ show e
+  {-
   let by_mod :: [(T.Text, [(T.Text, W.StackType, W.StackType, [W.Value] -> HostFunc s)])]
       by_mod = M.toList $ M.fromListWith (<>)
         [ (T.pack m, [(T.pack n,t1,t2,f)]) | (m,n,t1,t2,f) <- imps ]
@@ -104,38 +108,31 @@ initialize mod imps = withExceptT show $ do
   for_ start_err throwError
   let mods' = IM.insert ref inst mods
   return (mods', ref)
+  -}
 
+exportName :: WS.Export -> String
+exportName (WS.Export name _) = T.unpack name
 
 exportedFunctions :: Module -> [FuncName]
-exportedFunctions wasm_mod =
-  [ T.unpack (W._exportName e)
-  | W.Phrase _ e <- V.toList $ W._moduleExports wasm_mod
-  , W.FuncExport {} <- return $ W._exportDesc e
-  ]
+exportedFunctions wasm_mod = map exportName $ WS.exports wasm_mod
 
+invokeExport :: Store -> ModuleInstance -> FuncName -> [W.Value] -> IO [W.Value]
+invokeExport st mod method args = do
+  v <- W.invokeExport st mod (T.pack method) args
+  case v of Just w -> return w
+            Nothing -> error "invoke export failed"
 
-invokeExport :: Instance s -> FuncName -> [W.Value] -> HostM s [W.Value]
-invokeExport (mods', ref) method args = do
-  let inst = mods' IM.! ref
-  withExceptT show $
-    W.invokeByName mods' inst (T.pack method) args
+invokeTable :: Store -> ModuleInstance -> Address -> [W.Value] -> IO [W.Value]
+invokeTable st _mod idx args = do
+  v <- W.invoke st idx args
+  case v of Just w -> return w
+            Nothing -> error "invoke failed"
 
-invokeTable :: Instance s -> Int32 -> [W.Value] -> HostM s [W.Value]
-invokeTable (mods', ref) idx args = do
-  let inst = mods' IM.! ref
-  withExceptT show $ do
-    func <- W.elem inst (0 W.@@ def) idx def
-    W.invoke mods' inst func args
+getBytes :: Store -> ModuleInstance -> Address -> Int -> IO BS.ByteString
+getBytes _st _mod _ptr _len = do
+  return BS.empty
 
-getBytes :: Instance s -> W.Address -> W.Size -> HostM s BS.ByteString
-getBytes (mods', ref) ptr len = do
-  let inst = mods' IM.! ref
-  let mem = V.head (W._miMemories inst)
-  withExceptT show $ W.loadBytes mem ptr len
-
-setBytes :: Instance s -> W.Address -> BS.ByteString -> HostM s ()
-setBytes (mods', ref) ptr blob = do
-  let inst = mods' IM.! ref
-  let mem = V.head (W._miMemories inst)
-  withExceptT show $ W.storeBytes mem (fromIntegral ptr) blob
+setBytes :: Store -> ModuleInstance -> Address -> BS.ByteString -> IO ()
+setBytes _st _mod _ptr _blob = do
+  return ()
 
