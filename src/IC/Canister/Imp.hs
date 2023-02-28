@@ -786,7 +786,7 @@ rawInstantiate wasm_mod = do
   result <- initialize wasm_mod (systemAPI esref) <*> Mem.new
   case result of
     Left  err -> return $ Trap err
-    Right (inst, sm) -> return $ Return $ ImpState esref inst sm wasm_mod
+    Right (store, inst) -> return $ Return $ ImpState esref store inst sm wasm_mod
 
 cantRespond :: NeedsToRespond
 cantRespond = NeedsToRespond False
