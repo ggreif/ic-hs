@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- Unit test for IC.Test.Crypto.ECDSA</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE BinaryLiterals #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE ViewPatterns #-}</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">IC.Test.ECDSA</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="IC.Test.ECDSA.html#ecdsaTests"><span class="hs-identifier">ecdsaTests</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/bytestring-0.10.12.1/src/Data.ByteString.Lazy.html"><span class="hs-identifier">Data.ByteString.Lazy</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="file:///nix/store/g06j82c3sqx93lq3lx6xfdryp0y61zf4-tasty-1.4.2.3-doc/share/doc/tasty-1.4.2.3/html/src/Test.Tasty.html"><span class="hs-identifier">Test.Tasty</span></a></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="file:///nix/store/18lab6kqmd9p910l4yl9hh2mvvwrrmwn-tasty-quickcheck-0.10.2-doc/share/doc/tasty-quickcheck-0.10.2/html/src/Test.Tasty.QuickCheck.html"><span class="hs-identifier">Test.Tasty.QuickCheck</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="file:///nix/store/lhdkvldidwlynr81ncjifgrr9janbdq8-tasty-hunit-0.10.0.3-doc/share/doc/tasty-hunit-0.10.0.3/html/src/Test.Tasty.HUnit.html"><span class="hs-identifier">Test.Tasty.HUnit</span></a></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="file:///nix/store/0zxnx59j9lsay9cqhd0hf96wzhiq27f8-quickcheck-io-0.2.0-doc/share/doc/quickcheck-io-0.2.0/html/src/Test.QuickCheck.IO.html"><span class="hs-identifier">Test.QuickCheck.IO</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="IC.Crypto.ECDSA.html"><span class="hs-identifier">IC.Crypto.ECDSA</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">ECDSA</span></span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="annot"><a href="IC.Test.ECDSA.html#ecdsaTests"><span class="hs-identifier hs-type">ecdsaTests</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="file:///nix/store/g06j82c3sqx93lq3lx6xfdryp0y61zf4-tasty-1.4.2.3-doc/share/doc/tasty-1.4.2.3/html/src/Test.Tasty.Core.html#TestTree"><span class="hs-identifier hs-type">TestTree</span></a></span><span>
+</span><span id="line-17"></span><span id="ecdsaTests"><span class="annot"><span class="annottext">ecdsaTests :: TestTree
+</span><a href="IC.Test.ECDSA.html#ecdsaTests"><span class="hs-identifier hs-var hs-var">ecdsaTests</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TestName -&gt; [TestTree] -&gt; TestTree
+</span><a href="file:///nix/store/g06j82c3sqx93lq3lx6xfdryp0y61zf4-tasty-1.4.2.3-doc/share/doc/tasty-1.4.2.3/html/src/Test.Tasty.Core.html#testGroup"><span class="hs-identifier hs-var">testGroup</span></a></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;ECDSA crypto tests&quot;</span></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">TestName -&gt; ([Word8] -&gt; [Word8] -&gt; IO ()) -&gt; TestTree
+forall a. Testable a =&gt; TestName -&gt; a -&gt; TestTree
+</span><a href="file:///nix/store/18lab6kqmd9p910l4yl9hh2mvvwrrmwn-tasty-quickcheck-0.10.2-doc/share/doc/tasty-quickcheck-0.10.2/html/src/Test.Tasty.QuickCheck.html#testProperty"><span class="hs-identifier hs-var">testProperty</span></a></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;create-sign-verify&quot;</span></span><span> </span><span class="annot"><span class="annottext">(([Word8] -&gt; [Word8] -&gt; IO ()) -&gt; TestTree)
+-&gt; ([Word8] -&gt; [Word8] -&gt; IO ()) -&gt; TestTree
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/base-4.15.1.0/src/GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span>
+</span><span id="line-19"></span><span>      </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Word8] -&gt; ByteString
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/bytestring-0.10.12.1/src/Data.ByteString.Lazy.html#pack"><span class="hs-identifier hs-var">BS.pack</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679321430"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321430"><span class="hs-identifier hs-var">seed</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Word8] -&gt; ByteString
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/bytestring-0.10.12.1/src/Data.ByteString.Lazy.html#pack"><span class="hs-identifier hs-var">BS.pack</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679321429"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321429"><span class="hs-identifier hs-var">msg</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-20"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679321428"><span class="annot"><span class="annottext">sk :: SecretKey
+</span><a href="#local-6989586621679321428"><span class="hs-identifier hs-var hs-var">sk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; SecretKey
+</span><a href="IC.Crypto.ECDSA.html#createKey"><span class="hs-identifier hs-var">ECDSA.createKey</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321430"><span class="hs-identifier hs-var">seed</span></a></span><span>
+</span><span id="line-21"></span><span>        </span><span id="local-6989586621679321426"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321426"><span class="hs-identifier hs-var">sig</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">SecretKey -&gt; ByteString -&gt; IO ByteString
+</span><a href="IC.Crypto.ECDSA.html#sign"><span class="hs-identifier hs-var">ECDSA.sign</span></a></span><span> </span><span class="annot"><span class="annottext">SecretKey
+</span><a href="#local-6989586621679321428"><span class="hs-identifier hs-var">sk</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321429"><span class="hs-identifier hs-var">msg</span></a></span><span>
+</span><span id="line-22"></span><span>        </span><span class="annot"><span class="annottext">HasCallStack =&gt; TestName -&gt; Bool -&gt; IO ()
+TestName -&gt; Bool -&gt; IO ()
+</span><a href="file:///nix/store/lhdkvldidwlynr81ncjifgrr9janbdq8-tasty-hunit-0.10.0.3-doc/share/doc/tasty-hunit-0.10.0.3/html/src/Test.Tasty.HUnit.Orig.html#assertBool"><span class="hs-identifier hs-var">assertBool</span></a></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;verifies&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; IO ()) -&gt; Bool -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/base-4.15.1.0/src/GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString -&gt; ByteString -&gt; Bool
+</span><a href="IC.Crypto.ECDSA.html#verify"><span class="hs-identifier hs-var">ECDSA.verify</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SecretKey -&gt; ByteString
+</span><a href="IC.Crypto.ECDSA.html#toPublicKey"><span class="hs-identifier hs-var">ECDSA.toPublicKey</span></a></span><span> </span><span class="annot"><span class="annottext">SecretKey
+</span><a href="#local-6989586621679321428"><span class="hs-identifier hs-var">sk</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321429"><span class="hs-identifier hs-var">msg</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321426"><span class="hs-identifier hs-var">sig</span></a></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TestName -&gt; ([Word8] -&gt; [Word8] -&gt; [Word8] -&gt; IO ()) -&gt; TestTree
+forall a. Testable a =&gt; TestName -&gt; a -&gt; TestTree
+</span><a href="file:///nix/store/18lab6kqmd9p910l4yl9hh2mvvwrrmwn-tasty-quickcheck-0.10.2-doc/share/doc/tasty-quickcheck-0.10.2/html/src/Test.Tasty.QuickCheck.html#testProperty"><span class="hs-identifier hs-var">testProperty</span></a></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;invalid sig&quot;</span></span><span> </span><span class="annot"><span class="annottext">(([Word8] -&gt; [Word8] -&gt; [Word8] -&gt; IO ()) -&gt; TestTree)
+-&gt; ([Word8] -&gt; [Word8] -&gt; [Word8] -&gt; IO ()) -&gt; TestTree
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/base-4.15.1.0/src/GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span>
+</span><span id="line-24"></span><span>      </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Word8] -&gt; ByteString
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/bytestring-0.10.12.1/src/Data.ByteString.Lazy.html#pack"><span class="hs-identifier hs-var">BS.pack</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679321421"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321421"><span class="hs-identifier hs-var">seed</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Word8] -&gt; ByteString
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/bytestring-0.10.12.1/src/Data.ByteString.Lazy.html#pack"><span class="hs-identifier hs-var">BS.pack</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679321420"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321420"><span class="hs-identifier hs-var">msg</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Word8] -&gt; ByteString
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/bytestring-0.10.12.1/src/Data.ByteString.Lazy.html#pack"><span class="hs-identifier hs-var">BS.pack</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679321419"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321419"><span class="hs-identifier hs-var">sig</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-25"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679321418"><span class="annot"><span class="annottext">sk :: SecretKey
+</span><a href="#local-6989586621679321418"><span class="hs-identifier hs-var hs-var">sk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; SecretKey
+</span><a href="IC.Crypto.ECDSA.html#createKey"><span class="hs-identifier hs-var">ECDSA.createKey</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321421"><span class="hs-identifier hs-var">seed</span></a></span><span> </span><span class="hs-keyword">in</span><span>
+</span><span id="line-26"></span><span>        </span><span class="annot"><span class="annottext">HasCallStack =&gt; TestName -&gt; Bool -&gt; IO ()
+TestName -&gt; Bool -&gt; IO ()
+</span><a href="file:///nix/store/lhdkvldidwlynr81ncjifgrr9janbdq8-tasty-hunit-0.10.0.3-doc/share/doc/tasty-hunit-0.10.0.3/html/src/Test.Tasty.HUnit.Orig.html#assertBool"><span class="hs-identifier hs-var">assertBool</span></a></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;does not verify&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; IO ()) -&gt; Bool -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/base-4.15.1.0/src/GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/ghc-prim-0.7.0/src/GHC.Classes.html#not"><span class="hs-identifier hs-var">not</span></a></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Bool) -&gt; Bool -&gt; Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/base-4.15.1.0/src/GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString -&gt; ByteString -&gt; Bool
+</span><a href="IC.Crypto.ECDSA.html#verify"><span class="hs-identifier hs-var">ECDSA.verify</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SecretKey -&gt; ByteString
+</span><a href="IC.Crypto.ECDSA.html#toPublicKey"><span class="hs-identifier hs-var">ECDSA.toPublicKey</span></a></span><span> </span><span class="annot"><span class="annottext">SecretKey
+</span><a href="#local-6989586621679321418"><span class="hs-identifier hs-var">sk</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321420"><span class="hs-identifier hs-var">msg</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321419"><span class="hs-identifier hs-var">sig</span></a></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TestName -&gt; ([Word8] -&gt; [Word8] -&gt; [Word8] -&gt; Property) -&gt; TestTree
+forall a. Testable a =&gt; TestName -&gt; a -&gt; TestTree
+</span><a href="file:///nix/store/18lab6kqmd9p910l4yl9hh2mvvwrrmwn-tasty-quickcheck-0.10.2-doc/share/doc/tasty-quickcheck-0.10.2/html/src/Test.Tasty.QuickCheck.html#testProperty"><span class="hs-identifier hs-var">testProperty</span></a></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;wrong message&quot;</span></span><span> </span><span class="annot"><span class="annottext">(([Word8] -&gt; [Word8] -&gt; [Word8] -&gt; Property) -&gt; TestTree)
+-&gt; ([Word8] -&gt; [Word8] -&gt; [Word8] -&gt; Property) -&gt; TestTree
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/base-4.15.1.0/src/GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span>
+</span><span id="line-28"></span><span>      </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Word8] -&gt; ByteString
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/bytestring-0.10.12.1/src/Data.ByteString.Lazy.html#pack"><span class="hs-identifier hs-var">BS.pack</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679321416"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321416"><span class="hs-identifier hs-var">seed</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Word8] -&gt; ByteString
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/bytestring-0.10.12.1/src/Data.ByteString.Lazy.html#pack"><span class="hs-identifier hs-var">BS.pack</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679321415"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321415"><span class="hs-identifier hs-var">msg1</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Word8] -&gt; ByteString
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/bytestring-0.10.12.1/src/Data.ByteString.Lazy.html#pack"><span class="hs-identifier hs-var">BS.pack</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679321414"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321414"><span class="hs-identifier hs-var">msg2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-29"></span><span>      </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321415"><span class="hs-identifier hs-var">msg1</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/ghc-prim-0.7.0/src/GHC.Classes.html#%2F%3D"><span class="hs-operator hs-var">/=</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321414"><span class="hs-identifier hs-var">msg2</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; IO () -&gt; Property
+forall prop. Testable prop =&gt; Bool -&gt; prop -&gt; Property
+</span><a href="file:///nix/store/x6n47spfpd285xcjjap8d7g1nzh4qq9d-QuickCheck-2.14.2-doc/share/doc/QuickCheck-2.14.2/html/src/Test.QuickCheck.Property.html#%3D%3D%3E"><span class="hs-operator hs-var">==&gt;</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-30"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679321411"><span class="annot"><span class="annottext">sk :: SecretKey
+</span><a href="#local-6989586621679321411"><span class="hs-identifier hs-var hs-var">sk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; SecretKey
+</span><a href="IC.Crypto.ECDSA.html#createKey"><span class="hs-identifier hs-var">ECDSA.createKey</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321416"><span class="hs-identifier hs-var">seed</span></a></span><span>
+</span><span id="line-31"></span><span>        </span><span id="local-6989586621679321410"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321410"><span class="hs-identifier hs-var">sig</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">SecretKey -&gt; ByteString -&gt; IO ByteString
+</span><a href="IC.Crypto.ECDSA.html#sign"><span class="hs-identifier hs-var">ECDSA.sign</span></a></span><span> </span><span class="annot"><span class="annottext">SecretKey
+</span><a href="#local-6989586621679321411"><span class="hs-identifier hs-var">sk</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321414"><span class="hs-identifier hs-var">msg2</span></a></span><span>
+</span><span id="line-32"></span><span>        </span><span class="annot"><span class="annottext">HasCallStack =&gt; TestName -&gt; Bool -&gt; IO ()
+TestName -&gt; Bool -&gt; IO ()
+</span><a href="file:///nix/store/lhdkvldidwlynr81ncjifgrr9janbdq8-tasty-hunit-0.10.0.3-doc/share/doc/tasty-hunit-0.10.0.3/html/src/Test.Tasty.HUnit.Orig.html#assertBool"><span class="hs-identifier hs-var">assertBool</span></a></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;does not verify&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; IO ()) -&gt; Bool -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/base-4.15.1.0/src/GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/ghc-prim-0.7.0/src/GHC.Classes.html#not"><span class="hs-identifier hs-var">not</span></a></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Bool) -&gt; Bool -&gt; Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="file:///nix/store/sq3hm1arb77zb833mld18fi4liydbf18-ghc-9.0.2-doc/share/doc/ghc/html/libraries/base-4.15.1.0/src/GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString -&gt; ByteString -&gt; Bool
+</span><a href="IC.Crypto.ECDSA.html#verify"><span class="hs-identifier hs-var">ECDSA.verify</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SecretKey -&gt; ByteString
+</span><a href="IC.Crypto.ECDSA.html#toPublicKey"><span class="hs-identifier hs-var">ECDSA.toPublicKey</span></a></span><span> </span><span class="annot"><span class="annottext">SecretKey
+</span><a href="#local-6989586621679321411"><span class="hs-identifier hs-var">sk</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321415"><span class="hs-identifier hs-var">msg1</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679321410"><span class="hs-identifier hs-var">sig</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">]</span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span></pre></body></html>
